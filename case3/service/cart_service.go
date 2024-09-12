@@ -25,7 +25,7 @@ type (
 	}
 
 	orderCartRepository interface {
-		CreateOrderAndUpdateCart(ctx context.Context, order model.Order, cartIds []int) error
+		CreateOrderAndUpdateCart(ctx context.Context, userID uuid.UUID, cartIds []int) (uuid.UUID, error)
 	}
 
 	cartService struct {
@@ -72,9 +72,7 @@ func (cs *cartService) AddProductToCartList(ctx context.Context, req dto.AddCart
 			return err
 		}
 	} else {
-
 		cart.Quantity++
-
 		if cart.Quantity > product.Stock {
 			return errors.New("cannot add product, limited stock")
 		}
@@ -131,7 +129,6 @@ func (cs *cartService) CheckoutSelectedProductsInCart(ctx context.Context, req d
 
 	unprocessedCartID := []string{}
 	processedCartID := []int{}
-	totalPrice := 0
 	for _, cart := range carts {
 		for _, chartID := range req.CartIDs {
 			if cart.ID == chartID {
@@ -143,7 +140,6 @@ func (cs *cartService) CheckoutSelectedProductsInCart(ctx context.Context, req d
 				}
 
 				processedCartID = append(processedCartID, chartID)
-				totalPrice += cart.ProductPrice * cart.Quantity
 			}
 		}
 	}
@@ -153,13 +149,12 @@ func (cs *cartService) CheckoutSelectedProductsInCart(ctx context.Context, req d
 	}
 
 	if len(processedCartID) > 0 {
-		order := model.NewOrder(req.UserID, totalPrice)
-		err = cs.orderCartRepository.CreateOrderAndUpdateCart(ctx, *order, req.CartIDs)
+		orderID, err := cs.orderCartRepository.CreateOrderAndUpdateCart(ctx, req.UserID, req.CartIDs)
 		if err != nil {
 			return err
 		}
 
-		err = cs.orderPublisher.PublishOrder(ctx, req.UserID, order.ID, req.CartIDs)
+		err = cs.orderPublisher.PublishOrder(ctx, req.UserID, orderID, req.CartIDs)
 		if err != nil {
 			return err
 		}

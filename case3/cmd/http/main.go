@@ -66,13 +66,12 @@ func main() {
 	tokenRepository := repository.NewTokenRepository(db)
 	productRepository := repository.NewProductRepository(db)
 	cartRepository := repository.NewCartRepository(db)
-	orderRepository := repository.NewOrderRepository(db)
-	newOrderCartRepository := repository.NewOrderCartRepository(db)
+	newOrderCartProductRepository := repository.NewOrderCartProductRepository(db)
 
 	authService := service.NewAuthService(userRepository, tokenRepository)
 	productService := service.NewProductService(productRepository)
-	cartService := service.NewCartService(cartRepository, productRepository, newOrderCartRepository, orderPublisher)
-	orderService := service.NewOrderService(cartRepository, orderRepository)
+	cartService := service.NewCartService(cartRepository, productRepository, newOrderCartProductRepository, orderPublisher)
+	orderService := service.NewOrderService(newOrderCartProductRepository)
 
 	authController := controller.NewAuthController(authService)
 	productController := controller.NewProductController(productService)
