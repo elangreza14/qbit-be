@@ -1,12 +1,12 @@
 BEGIN
 ;
 
--- delete carts after cart is purchased
 CREATE TABLE IF NOT EXISTS "carts" (
     "id" SERIAL PRIMARY KEY,
-    "user_id" VARCHAR(50),
+    "user_id" UUID,
     "product_id" INT REFERENCES products(id),
     "quantity" INT,
+    "used_at" TIMESTAMPTZ,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     "updated_at" TIMESTAMPTZ NULL
 );

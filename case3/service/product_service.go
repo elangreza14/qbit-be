@@ -34,7 +34,7 @@ func (cs *productService) ProductList(ctx context.Context) (dto.ProductListRespo
 	for _, product := range product {
 		res = append(res, dto.ProductListResponseElement{
 			ID:           product.ID,
-			DeviceName:   product.DeviceName,
+			DeviceName:   product.Name,
 			Manufacturer: product.Manufacturer,
 			Price:        product.Price,
 			Image:        product.Image,

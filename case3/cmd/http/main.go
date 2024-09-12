@@ -13,8 +13,11 @@ import (
 	"time"
 
 	"github.com/elangreza14/qbit/case3/cmd/http/routes"
+	"github.com/elangreza14/qbit/case3/consumer"
 	"github.com/elangreza14/qbit/case3/controller"
+	redislib "github.com/elangreza14/qbit/case3/lib/redis"
 	"github.com/elangreza14/qbit/case3/middleware"
+	"github.com/elangreza14/qbit/case3/publisher"
 	"github.com/elangreza14/qbit/case3/repository"
 	"github.com/elangreza14/qbit/case3/service"
 	"github.com/gin-contrib/cors"
@@ -28,6 +31,7 @@ import (
 	"github.com/jackc/pgx/v5/tracelog"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 )
 
@@ -51,21 +55,50 @@ func main() {
 	db, err := DB(ctx, logger)
 	errChecker(err)
 
+	// redis for pubsub
+	redisDB, err := redislib.NewRedis(ctx, os.Getenv("REDIS_URL"), "", 0)
+	errChecker(err)
+
+	orderPublisher := publisher.NewOrderPublisher(redisDB)
+
 	// dependency injection
 	userRepository := repository.NewUserRepository(db)
 	tokenRepository := repository.NewTokenRepository(db)
 	productRepository := repository.NewProductRepository(db)
 	cartRepository := repository.NewCartRepository(db)
+	orderRepository := repository.NewOrderRepository(db)
+	newOrderCartRepository := repository.NewOrderCartRepository(db)
 
 	authService := service.NewAuthService(userRepository, tokenRepository)
 	productService := service.NewProductService(productRepository)
-	cartService := service.NewCartService(cartRepository, productRepository)
+	cartService := service.NewCartService(cartRepository, productRepository, newOrderCartRepository, orderPublisher)
+	orderService := service.NewOrderService(cartRepository, orderRepository)
 
 	authController := controller.NewAuthController(authService)
 	productController := controller.NewProductController(productService)
 	cartController := controller.NewCartController(cartService)
 
-	// router
+	orderConsumer := consumer.NewOrderConsumer(orderService, redisDB, logger)
+	pubsub := redisDB.Subscribe(ctx, publisher.OrderChannel)
+	defer pubsub.Close()
+	logger.Info("listening redis", zap.Int("port", 6379))
+
+	go func() {
+		for {
+			msg, err := pubsub.ReceiveMessage(ctx)
+			if err != nil {
+				if err == redis.ErrClosed {
+					logger.Info("redis closed")
+					return
+				}
+				logger.Error("err when receiving message", zap.Error(err))
+				continue
+			}
+
+			orderConsumer.ConsumeOrder(ctx, msg, publisher.OrderChannel)
+		}
+	}()
+
 	if os.Getenv("ENV") != "DEVELOPMENT" {
 		gin.SetMode(gin.ReleaseMode)
 	}
@@ -113,6 +146,9 @@ func main() {
 		func(ctx context.Context) error {
 			db.Close()
 			return nil
+		},
+		func(ctx context.Context) error {
+			return redisDB.Close()
 		})
 
 	<-wait

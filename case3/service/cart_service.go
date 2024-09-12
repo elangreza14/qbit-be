@@ -14,24 +14,34 @@ import (
 
 type (
 	cartRepo interface {
-		GetAll(ctx context.Context) ([]model.Cart, error)
-		Get(ctx context.Context, by string, val any, columns ...string) (*model.Cart, error)
 		GetChartByUserIDAndProductID(ctx context.Context, userId uuid.UUID, productId int) (*model.Cart, error)
 		CheckAvailabilityCartList(ctx context.Context, userID uuid.UUID) ([]model.Cart, error)
 		Create(ctx context.Context, payloads ...model.Cart) error
 		Edit(ctx context.Context, payload model.Cart, whereValues map[string]any) error
 	}
 
+	orderPublisher interface {
+		PublishOrder(ctx context.Context, userID, orderID uuid.UUID, cartIDs []int) error
+	}
+
+	orderCartRepository interface {
+		CreateOrderAndUpdateCart(ctx context.Context, order model.Order, cartIds []int) error
+	}
+
 	cartService struct {
-		cartRepo    cartRepo
-		productRepo productRepo
+		cartRepo            cartRepo
+		productRepo         productRepo
+		orderCartRepository orderCartRepository
+		orderPublisher      orderPublisher
 	}
 )
 
-func NewCartService(cartRepo cartRepo, productRepo productRepo) *cartService {
+func NewCartService(cartRepo cartRepo, productRepo productRepo, orderCartRepository orderCartRepository, orderPublisher orderPublisher) *cartService {
 	return &cartService{
-		cartRepo:    cartRepo,
-		productRepo: productRepo,
+		cartRepo:            cartRepo,
+		productRepo:         productRepo,
+		orderCartRepository: orderCartRepository,
+		orderPublisher:      orderPublisher,
 	}
 }
 
@@ -123,7 +133,7 @@ func (cs *cartService) CheckoutSelectedProductsInCart(ctx context.Context, req d
 	processedCartID := []int{}
 	totalPrice := 0
 	for _, cart := range carts {
-		for _, chartID := range req.ChartIDs {
+		for _, chartID := range req.CartIDs {
 			if cart.ID == chartID {
 				messageCode := cs.checkQuantityWithActualStock(cart.Quantity, cart.ActualStock)
 				if messageCode != "AVAILABLE" {
@@ -131,10 +141,10 @@ func (cs *cartService) CheckoutSelectedProductsInCart(ctx context.Context, req d
 					errMessage := fmt.Sprintf("stock %s for this product %s", messageCode, cart.ProductName)
 					unprocessedCartID = append(unprocessedCartID, errMessage)
 				}
-			}
 
-			processedCartID = append(processedCartID, chartID)
-			totalPrice += cart.ProductPrice * cart.Quantity
+				processedCartID = append(processedCartID, chartID)
+				totalPrice += cart.ProductPrice * cart.Quantity
+			}
 		}
 	}
 
@@ -143,11 +153,21 @@ func (cs *cartService) CheckoutSelectedProductsInCart(ctx context.Context, req d
 	}
 
 	if len(processedCartID) > 0 {
-		orderID := uuid.New()
-		fmt.Println(orderID, totalPrice)
+		order := model.NewOrder(req.UserID, totalPrice)
+		err = cs.orderCartRepository.CreateOrderAndUpdateCart(ctx, *order, req.CartIDs)
+		if err != nil {
+			return err
+		}
+
+		err = cs.orderPublisher.PublishOrder(ctx, req.UserID, order.ID, req.CartIDs)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	}
 
-	return nil
+	return errors.New("CartIDs not valid")
 }
 
 func (cs *cartService) checkQuantityWithActualStock(quantity, actualStock int) string {

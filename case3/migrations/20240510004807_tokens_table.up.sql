@@ -2,8 +2,8 @@ BEGIN
 ;
 
 CREATE TABLE IF NOT EXISTS "tokens" (
-    "id" uuid PRIMARY KEY,
-    "user_id" uuid NOT NULL,
+    "id" UUID PRIMARY KEY,
+    "user_id" UUID NOT NULL,
     "token" VARCHAR NOT NULL,
     "token_type" VARCHAR NOT NULL,
     "issued_at" TIMESTAMPTZ NOT NULL,

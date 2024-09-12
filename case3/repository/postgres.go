@@ -19,6 +19,7 @@ type (
 
 	Entity interface {
 		TableName() string
+		Columns() []string
 		Data() map[string]any
 	}
 
@@ -32,10 +33,8 @@ type (
 func NewPostgresRepo[T Entity](dbPool QueryPgx) *PostgresRepo[T] {
 	var table T
 
-	columns := []string{}
-	for column := range table.Data() {
-		columns = append(columns, column)
-	}
+	columns := []string{"created_at", "updated_at"}
+	columns = append(columns, table.Columns()...)
 
 	tableName := table.TableName()
 
@@ -54,8 +53,6 @@ func (pr *PostgresRepo[T]) Get(ctx context.Context, by string, val any, columns 
 	if len(columns) > 0 {
 		q = fmt.Sprintf(`select %s from %s  WHERE %s = $1 LIMIT 1`, strings.Join(columns, ", "), pr.tableName, by)
 	}
-
-	fmt.Println("cek", q)
 
 	v, err := pgxutil.SelectRow(ctx, pr.db, q, []any{val}, pgx.RowToAddrOfStructByNameLax[T])
 	if err != nil {

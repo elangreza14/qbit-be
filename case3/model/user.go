@@ -55,3 +55,12 @@ func (u User) Data() map[string]any {
 		"password": u.Password,
 	}
 }
+
+func (u User) Columns() []string {
+	return []string{
+		"id",
+		"email",
+		"name",
+		"password",
+	}
+}

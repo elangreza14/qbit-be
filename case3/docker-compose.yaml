@@ -12,6 +12,14 @@ services:
       - database-data:/var/lib/postgresql/data/
     networks:
       - assetfindr
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - /path/to/local/dаta:/root/redis
+      - /path/to/local/redis.conf:/usr/local/etc/redis/redis.conf
 
 networks:
   assetfindr:

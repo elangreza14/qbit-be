@@ -22,7 +22,7 @@ type (
 	CartListResponse []CartListResponseElement
 
 	CheckoutCart struct {
-		ChartIDs []int `json:"cart_ids" binding:"required,gt=0"`
-		UserID   uuid.UUID
+		CartIDs []int `json:"cart_ids" binding:"required,gt=0"`
+		UserID  uuid.UUID
 	}
 )

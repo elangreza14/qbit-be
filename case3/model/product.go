@@ -7,7 +7,7 @@ import (
 
 type Product struct {
 	ID           int    `db:"id"`
-	DeviceName   string `db:"device_name"`
+	Name         string `db:"name"`
 	Manufacturer string `db:"manufacturer"`
 	Price        int    `db:"price"`
 	Image        string `db:"image"`
@@ -25,12 +25,21 @@ func (c Product) TableName() string {
 func (c Product) Data() map[string]any {
 	return map[string]any{
 		"id":           c.ID,
-		"device_name":  c.DeviceName,
+		"name":         c.Name,
 		"manufacturer": c.Manufacturer,
 		"price":        c.Price,
 		"image":        c.Image,
 		"stock":        c.Stock,
-		"created_at":   c.CreatedAt,
-		"updated_at":   c.UpdatedAt,
+	}
+}
+
+func (c Product) Columns() []string {
+	return []string{
+		"id",
+		"name",
+		"manufacturer",
+		"price",
+		"image",
+		"stock",
 	}
 }

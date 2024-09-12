@@ -2,7 +2,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
 	"github.com/elangreza14/qbit/case3/dto"
@@ -56,7 +55,6 @@ func (ac *AuthController) LoginUser() gin.HandlerFunc {
 
 		token, err := ac.authService.LoginUser(c, req)
 		if err != nil {
-			fmt.Println(err)
 			c.AbortWithStatusJSON(http.StatusInternalServerError, dto.NewBaseResponse(nil, err))
 			return
 		}

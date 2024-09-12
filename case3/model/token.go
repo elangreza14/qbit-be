@@ -90,3 +90,15 @@ func (t Token) Data() map[string]any {
 		"duration":   t.Duration,
 	}
 }
+
+func (t Token) Columns() []string {
+	return []string{
+		"id",
+		"user_id",
+		"token",
+		"token_type",
+		"issued_at",
+		"expired_at",
+		"duration",
+	}
+}
