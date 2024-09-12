@@ -8,29 +8,30 @@ import (
 )
 
 type (
-	productsRepo interface {
+	productRepo interface {
 		GetAll(ctx context.Context) ([]model.Product, error)
+		Get(ctx context.Context, by string, val any, columns ...string) (*model.Product, error)
 	}
 
-	productsService struct {
-		productsRepo productsRepo
+	productService struct {
+		productRepo productRepo
 	}
 )
 
-func NewProductService(productsRepo productsRepo) *productsService {
-	return &productsService{
-		productsRepo: productsRepo,
+func NewProductService(productRepo productRepo) *productService {
+	return &productService{
+		productRepo: productRepo,
 	}
 }
 
-func (cs *productsService) ProductsList(ctx context.Context) (dto.ProductListResponse, error) {
-	products, err := cs.productsRepo.GetAll(ctx)
+func (cs *productService) ProductList(ctx context.Context) (dto.ProductListResponse, error) {
+	product, err := cs.productRepo.GetAll(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	res := make([]dto.ProductListResponseElement, 0)
-	for _, product := range products {
+	for _, product := range product {
 		res = append(res, dto.ProductListResponseElement{
 			ID:           product.ID,
 			DeviceName:   product.DeviceName,

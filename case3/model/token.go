@@ -79,18 +79,6 @@ func (t Token) TableName() string {
 	return "tokens"
 }
 
-func (t Token) Columns() []string {
-	return []string{
-		"id",
-		"user_id",
-		"token",
-		"token_type",
-		"issued_at",
-		"expired_at",
-		"duration",
-	}
-}
-
 func (t Token) Data() map[string]any {
 	return map[string]any{
 		"id":         t.ID,

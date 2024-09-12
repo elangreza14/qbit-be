@@ -19,7 +19,6 @@ type (
 
 	Entity interface {
 		TableName() string
-		Columns() []string
 		Data() map[string]any
 	}
 
@@ -35,16 +34,10 @@ type (
 func NewPostgresRepo[T Entity](dbPool QueryPgx) *PostgresRepo[T] {
 	var table T
 
-	namedColumns := []string{}
-	namedColumnsForUpdate := []string{}
-	for _, column := range table.Columns() {
-		namedColumns = append(namedColumns, fmt.Sprintf("@%s", column))
-		namedColumnsForUpdate = append(namedColumnsForUpdate, fmt.Sprintf("%s=@%s", column, column))
-	}
-
 	columns := []string{}
-	columns = append(columns, table.Columns()...)
-	columns = append(columns, "created_at", "updated_at")
+	for column := range table.Data() {
+		columns = append(columns, column)
+	}
 
 	tableName := table.TableName()
 
@@ -54,15 +47,15 @@ func NewPostgresRepo[T Entity](dbPool QueryPgx) *PostgresRepo[T] {
 			strings.Join(columns, ","),
 			tableName,
 		),
-		QueryBasicCreate: fmt.Sprintf("INSERT INTO %s(%s) VALUES (%s)",
-			tableName,
-			strings.Join(table.Columns(), ","),
-			strings.Join(namedColumns, ","),
-		),
-		QueryBasicUpdate: fmt.Sprintf(`UPDATE %s SET %s WHERE id=@id`,
-			tableName,
-			strings.Join(namedColumnsForUpdate, ","),
-		),
+		// QueryBasicCreate: fmt.Sprintf("INSERT INTO %s(%s) VALUES (%s)",
+		// 	tableName,
+		// 	strings.Join(table.Columns(), ","),
+		// 	strings.Join(namedColumns, ","),
+		// ),
+		// QueryBasicUpdate: fmt.Sprintf(`UPDATE %s SET %s WHERE id=@id`,
+		// 	tableName,
+		// 	strings.Join(namedColumnsForUpdate, ","),
+		// ),
 		tableName: tableName,
 	}
 }
@@ -70,8 +63,10 @@ func NewPostgresRepo[T Entity](dbPool QueryPgx) *PostgresRepo[T] {
 func (pr *PostgresRepo[T]) Get(ctx context.Context, by string, val any, columns ...string) (*T, error) {
 	q := fmt.Sprintf(pr.QueryBasicSelect+` WHERE %s = $1 LIMIT 1`, by)
 	if len(columns) > 0 {
-		q = fmt.Sprintf(`select %s from %s  WHERE %s = $1 LIMIT 1`, strings.Join(columns, ", "), pr, by)
+		q = fmt.Sprintf(`select %s from %s  WHERE %s = $1 LIMIT 1`, strings.Join(columns, ", "), pr.tableName, by)
 	}
+
+	fmt.Println("cek", q)
 
 	v, err := pgxutil.SelectRow(ctx, pr.db, q, []any{val}, pgx.RowToStructByNameLax[T])
 	if err != nil {
@@ -81,6 +76,7 @@ func (pr *PostgresRepo[T]) Get(ctx context.Context, by string, val any, columns 
 }
 
 func (pr *PostgresRepo[T]) GetAll(ctx context.Context) ([]T, error) {
+	fmt.Println(pr.QueryBasicSelect)
 	v, err := pgxutil.Select(ctx, pr.db, pr.QueryBasicSelect, nil, pgx.RowToStructByNameLax[T])
 	if err != nil {
 		return nil, err
@@ -90,10 +86,7 @@ func (pr *PostgresRepo[T]) GetAll(ctx context.Context) ([]T, error) {
 
 func (pr *PostgresRepo[T]) Create(ctx context.Context, payloads ...T) error {
 	for _, payload := range payloads {
-
-		var args pgx.NamedArgs = payload.Data()
-
-		_, err := pr.db.Exec(ctx, pr.QueryBasicCreate, args)
+		err := pgxutil.InsertRow(ctx, pr.db, pr.tableName, payload.Data())
 		if err != nil {
 			return err
 		}
@@ -102,16 +95,7 @@ func (pr *PostgresRepo[T]) Create(ctx context.Context, payloads ...T) error {
 	return nil
 }
 
-func (pr *PostgresRepo[T]) Edit(ctx context.Context, payloads ...T) error {
-	for _, payload := range payloads {
-
-		var args pgx.NamedArgs = payload.Data()
-
-		_, err := pr.db.Exec(ctx, pr.QueryBasicUpdate, args)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+func (pr *PostgresRepo[T]) Edit(ctx context.Context, payload T, whereValues map[string]any) error {
+	_, err := pgxutil.Update(ctx, pr.db, pr.tableName, payload.Data(), whereValues)
+	return err
 }

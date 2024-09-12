@@ -55,15 +55,15 @@ func main() {
 	userRepository := repository.NewUserRepository(db)
 	tokenRepository := repository.NewTokenRepository(db)
 	productRepository := repository.NewProductRepository(db)
+	cartRepository := repository.NewCartRepository(db)
 
 	authService := service.NewAuthService(userRepository, tokenRepository)
 	productService := service.NewProductService(productRepository)
+	cartService := service.NewCartService(cartRepository, productRepository)
 
 	authController := controller.NewAuthController(authService)
 	productController := controller.NewProductController(productService)
-
-	// TODO use this
-	_ = middleware.NewAuthMiddleware(authService)
+	cartController := controller.NewCartController(cartService)
 
 	// router
 	if os.Getenv("ENV") != "DEVELOPMENT" {
@@ -85,10 +85,14 @@ func main() {
 		c.String(http.StatusOK, "pong")
 	})
 
+	// TODO use this
+	authMiddleware := middleware.NewAuthMiddleware(authService)
+
 	// group api
 	apiGroup := router.Group("/api")
 	routes.AuthRoute(apiGroup, authController)
 	routes.ProductRoute(apiGroup, productController)
+	routes.CartRoute(apiGroup, cartController, authMiddleware)
 
 	srv := &http.Server{
 		Addr:    os.Getenv("HTTP_PORT"),

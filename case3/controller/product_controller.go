@@ -10,7 +10,7 @@ import (
 
 type (
 	productService interface {
-		ProductsList(ctx context.Context) (dto.ProductListResponse, error)
+		ProductList(ctx context.Context) (dto.ProductListResponse, error)
 	}
 
 	ProductController struct {
@@ -24,7 +24,7 @@ func NewProductController(productService productService) *ProductController {
 
 func (cc *ProductController) ProductList() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		currencies, err := cc.productService.ProductsList(c)
+		currencies, err := cc.productService.ProductList(c)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, dto.NewBaseResponse(nil, err))
 			return

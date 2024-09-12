@@ -46,15 +46,6 @@ func (u User) TableName() string {
 	return "users"
 }
 
-func (u User) Columns() []string {
-	return []string{
-		"id",
-		"email",
-		"name",
-		"password",
-	}
-}
-
 // to create in DB
 func (u User) Data() map[string]any {
 	return map[string]any{

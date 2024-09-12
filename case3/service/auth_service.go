@@ -34,7 +34,7 @@ func NewAuthService(userRepo userRepo, tokenRepo tokenRepo) *AuthService {
 }
 
 func (as *AuthService) RegisterUser(ctx context.Context, req dto.RegisterPayload) error {
-	user, err := as.UserRepo.Get(ctx, "email", req.Email, "email")
+	user, err := as.UserRepo.Get(ctx, "email", req.Email, "id", "email")
 	if err != nil && err != pgx.ErrNoRows {
 		return err
 	}
