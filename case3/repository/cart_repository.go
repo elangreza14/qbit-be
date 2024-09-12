@@ -45,7 +45,8 @@ func (cr *cartRepository) CheckAvailabilityCartList(ctx context.Context, userID 
 			c.updated_at,
 			p.stock AS actual_stock,
 			p.image AS product_image,
-			p.device_name AS product_name
+			p.device_name AS product_name,
+			p.price AS product_price
 		FROM carts c LEFT JOIN products p ON c.product_id = p.id WHERE user_id = $1`
 
 	v, err := pgxutil.Select(ctx, cr.db, q, []any{userID}, pgx.RowToStructByNameLax[model.Cart])

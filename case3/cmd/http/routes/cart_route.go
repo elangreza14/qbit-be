@@ -10,4 +10,5 @@ func CartRoute(route *gin.RouterGroup, CartController *controller.CartController
 	CartRoutes := route.Group("/carts")
 	CartRoutes.POST("", authMiddleware.MustAuthMiddleware(), CartController.AddProductToCartList())
 	CartRoutes.GET("", authMiddleware.MustAuthMiddleware(), CartController.CheckAvailabilityCartList())
+	CartRoutes.POST("/checkout", authMiddleware.MustAuthMiddleware(), CartController.CheckoutSelectedProductsInCart())
 }

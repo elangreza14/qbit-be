@@ -15,8 +15,14 @@ type (
 		ProductID    int    `json:"product_id"`
 		ProductName  string `json:"product_name"`
 		ProductImage string `json:"product_image"`
+		ProductPrice int    `json:"product_price"`
 		ActualStock  int    `json:"actual_stock"`
 	}
 
 	CartListResponse []CartListResponseElement
+
+	CheckoutCart struct {
+		ChartIDs []int `json:"cart_ids" binding:"required,gt=0"`
+		UserID   uuid.UUID
+	}
 )

@@ -3,6 +3,8 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
+	"strings"
 
 	"github.com/elangreza14/qbit/case3/dto"
 	"github.com/elangreza14/qbit/case3/model"
@@ -90,13 +92,11 @@ func (cs *cartService) CheckAvailabilityCartList(ctx context.Context, userID uui
 	res := []dto.CartListResponseElement{}
 
 	for _, cart := range carts {
-		message := "AVAILABLE"
-		if cart.ActualStock < cart.Quantity {
-			message = "NOT_ENOUGH"
-		}
-		if cart.ActualStock == 0 {
-			message = "NOT_AVAILABLE"
-		}
+
+		messageCode := cs.checkQuantityWithActualStock(cart.Quantity, cart.ActualStock)
+
+		message := fmt.Sprintf("stock %s for this product %s", messageCode, cart.ProductName)
+
 		res = append(res, dto.CartListResponseElement{
 			ID:           cart.ID,
 			Quantity:     cart.Quantity,
@@ -104,9 +104,59 @@ func (cs *cartService) CheckAvailabilityCartList(ctx context.Context, userID uui
 			ProductID:    cart.ProductID,
 			ProductName:  cart.ProductName,
 			ProductImage: cart.ProductImage,
+			ProductPrice: cart.ProductPrice,
 			ActualStock:  cart.ActualStock,
 		})
 	}
 
 	return res, nil
+}
+
+func (cs *cartService) CheckoutSelectedProductsInCart(ctx context.Context, req dto.CheckoutCart) error {
+	// check current carts exist or not
+	carts, err := cs.cartRepo.CheckAvailabilityCartList(ctx, req.UserID)
+	if err != nil {
+		return err
+	}
+
+	unprocessedCartID := []string{}
+	processedCartID := []int{}
+	totalPrice := 0
+	for _, cart := range carts {
+		for _, chartID := range req.ChartIDs {
+			if cart.ID == chartID {
+				messageCode := cs.checkQuantityWithActualStock(cart.Quantity, cart.ActualStock)
+				if messageCode != "AVAILABLE" {
+					// return fmt.Errorf("stock %s for this product %s", messageCode, cart.ProductName)
+					errMessage := fmt.Sprintf("stock %s for this product %s", messageCode, cart.ProductName)
+					unprocessedCartID = append(unprocessedCartID, errMessage)
+				}
+			}
+
+			processedCartID = append(processedCartID, chartID)
+			totalPrice += cart.ProductPrice * cart.Quantity
+		}
+	}
+
+	if len(unprocessedCartID) > 0 {
+		return errors.New(strings.Join(unprocessedCartID, ", "))
+	}
+
+	if len(processedCartID) > 0 {
+		orderID := uuid.New()
+		fmt.Println(orderID, totalPrice)
+	}
+
+	return nil
+}
+
+func (cs *cartService) checkQuantityWithActualStock(quantity, actualStock int) string {
+	if actualStock == 0 {
+		return "NOT_AVAILABLE"
+	}
+	if quantity > actualStock {
+		return "NOT_ENOUGH"
+	}
+
+	return "AVAILABLE"
 }

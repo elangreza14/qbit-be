@@ -15,6 +15,7 @@ type Cart struct {
 
 	ProductName  string `db:"product_name"`
 	ProductImage string `db:"product_image"`
+	ProductPrice int    `db:"product_price"`
 	ActualStock  int    `db:"actual_stock"`
 
 	CreatedAt time.Time    `db:"created_at"`
