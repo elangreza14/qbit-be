@@ -34,3 +34,23 @@ func (cr *cartRepository) GetChartByUserIDAndProductID(ctx context.Context, user
 
 	return v, nil
 }
+
+func (cr *cartRepository) CheckAvailabilityCartList(ctx context.Context, userID uuid.UUID) ([]model.Cart, error) {
+	q := `SELECT 
+			c.id,
+			c.user_id,
+			c.product_id,
+			c.quantity,
+			c.created_at,
+			c.updated_at,
+			p.stock AS actual_stock,
+			p.image AS product_image,
+			p.device_name AS product_name
+		FROM carts c LEFT JOIN products p ON c.product_id = p.id WHERE user_id = $1`
+
+	v, err := pgxutil.Select(ctx, cr.db, q, []any{userID}, pgx.RowToStructByNameLax[model.Cart])
+	if err != nil {
+		return nil, err
+	}
+	return v, nil
+}

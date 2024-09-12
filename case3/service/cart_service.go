@@ -15,6 +15,7 @@ type (
 		GetAll(ctx context.Context) ([]model.Cart, error)
 		Get(ctx context.Context, by string, val any, columns ...string) (*model.Cart, error)
 		GetChartByUserIDAndProductID(ctx context.Context, userId uuid.UUID, productId int) (*model.Cart, error)
+		CheckAvailabilityCartList(ctx context.Context, userID uuid.UUID) ([]model.Cart, error)
 		Create(ctx context.Context, payloads ...model.Cart) error
 		Edit(ctx context.Context, payload model.Cart, whereValues map[string]any) error
 	}
@@ -40,12 +41,12 @@ func (cs *cartService) AddProductToCartList(ctx context.Context, req dto.AddCart
 		return err
 	}
 
+	// check stock of cart
 	if product.Stock < 1 {
 		return errors.New("product is empty")
 	}
 
 	// check current cart exist or not
-
 	cart, err := cs.cartRepo.GetChartByUserIDAndProductID(ctx, req.UserID, req.ProductID)
 	if err != nil && err != pgx.ErrNoRows {
 		return err
@@ -62,11 +63,15 @@ func (cs *cartService) AddProductToCartList(ctx context.Context, req dto.AddCart
 
 		cart.Quantity++
 
-		where := make(map[string]any)
-		where["product_id"] = cart.ProductID
-		where["user_id"] = cart.UserID
+		if cart.Quantity > product.Stock {
+			return errors.New("cannot add product, limited stock")
+		}
 
-		err = cs.cartRepo.Edit(ctx, *cart, where)
+		whereClause := make(map[string]any)
+		whereClause["product_id"] = cart.ProductID
+		whereClause["user_id"] = cart.UserID
+
+		err = cs.cartRepo.Edit(ctx, *cart, whereClause)
 		if err != nil {
 			return err
 		}
@@ -75,7 +80,33 @@ func (cs *cartService) AddProductToCartList(ctx context.Context, req dto.AddCart
 	return nil
 }
 
-func (cs *cartService) CartList(ctx context.Context) error {
+func (cs *cartService) CheckAvailabilityCartList(ctx context.Context, userID uuid.UUID) (dto.CartListResponse, error) {
+	// check current carts exist or not
+	carts, err := cs.cartRepo.CheckAvailabilityCartList(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil
+	res := []dto.CartListResponseElement{}
+
+	for _, cart := range carts {
+		message := "AVAILABLE"
+		if cart.ActualStock < cart.Quantity {
+			message = "NOT_ENOUGH"
+		}
+		if cart.ActualStock == 0 {
+			message = "NOT_AVAILABLE"
+		}
+		res = append(res, dto.CartListResponseElement{
+			ID:           cart.ID,
+			Quantity:     cart.Quantity,
+			Message:      message,
+			ProductID:    cart.ProductID,
+			ProductName:  cart.ProductName,
+			ProductImage: cart.ProductImage,
+			ActualStock:  cart.ActualStock,
+		})
+	}
+
+	return res, nil
 }

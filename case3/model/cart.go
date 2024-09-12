@@ -13,6 +13,10 @@ type Cart struct {
 	ProductID int       `db:"product_id"`
 	Quantity  int       `db:"quantity"`
 
+	ProductName  string `db:"product_name"`
+	ProductImage string `db:"product_image"`
+	ActualStock  int    `db:"actual_stock"`
+
 	CreatedAt time.Time    `db:"created_at"`
 	UpdatedAt sql.NullTime `db:"updated_at"`
 }

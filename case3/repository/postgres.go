@@ -25,8 +25,6 @@ type (
 	PostgresRepo[T Entity] struct {
 		db               QueryPgx
 		QueryBasicSelect string
-		QueryBasicCreate string
-		QueryBasicUpdate string
 		tableName        string
 	}
 )
@@ -47,15 +45,6 @@ func NewPostgresRepo[T Entity](dbPool QueryPgx) *PostgresRepo[T] {
 			strings.Join(columns, ","),
 			tableName,
 		),
-		// QueryBasicCreate: fmt.Sprintf("INSERT INTO %s(%s) VALUES (%s)",
-		// 	tableName,
-		// 	strings.Join(table.Columns(), ","),
-		// 	strings.Join(namedColumns, ","),
-		// ),
-		// QueryBasicUpdate: fmt.Sprintf(`UPDATE %s SET %s WHERE id=@id`,
-		// 	tableName,
-		// 	strings.Join(namedColumnsForUpdate, ","),
-		// ),
 		tableName: tableName,
 	}
 }
@@ -68,15 +57,14 @@ func (pr *PostgresRepo[T]) Get(ctx context.Context, by string, val any, columns 
 
 	fmt.Println("cek", q)
 
-	v, err := pgxutil.SelectRow(ctx, pr.db, q, []any{val}, pgx.RowToStructByNameLax[T])
+	v, err := pgxutil.SelectRow(ctx, pr.db, q, []any{val}, pgx.RowToAddrOfStructByNameLax[T])
 	if err != nil {
 		return nil, err
 	}
-	return &v, nil
+	return v, nil
 }
 
 func (pr *PostgresRepo[T]) GetAll(ctx context.Context) ([]T, error) {
-	fmt.Println(pr.QueryBasicSelect)
 	v, err := pgxutil.Select(ctx, pr.db, pr.QueryBasicSelect, nil, pgx.RowToStructByNameLax[T])
 	if err != nil {
 		return nil, err
