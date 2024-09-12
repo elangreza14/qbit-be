@@ -19,7 +19,6 @@ type Cart struct {
 	ActualStock  int    `db:"actual_stock"`
 
 	CreatedAt time.Time    `db:"created_at"`
-	UsedAt    sql.NullTime `db:"used_at"`
 	UpdatedAt sql.NullTime `db:"updated_at"`
 }
 
@@ -41,7 +40,6 @@ func (u Cart) Data() map[string]any {
 		"user_id":    u.UserID,
 		"product_id": u.ProductID,
 		"quantity":   u.Quantity,
-		"used_at":    u.UsedAt,
 	}
 }
 
@@ -51,6 +49,5 @@ func (u Cart) Columns() []string {
 		"user_id",
 		"product_id",
 		"quantity",
-		"used_at",
 	}
 }

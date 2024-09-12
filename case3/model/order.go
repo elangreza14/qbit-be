@@ -34,9 +34,9 @@ const (
 	FailedStatus         StatusEnum = "FAILED"
 )
 
-func NewOrder(userID uuid.UUID, total int) *Order {
+func NewOrder(ID uuid.UUID, userID uuid.UUID, total int) *Order {
 	return &Order{
-		ID:     uuid.New(),
+		ID:     ID,
 		UserID: userID,
 		Status: ProcessingStatus,
 		Total:  total,

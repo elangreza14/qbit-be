@@ -1,7 +1,6 @@
 BEGIN
 ;
 
--- delete orders after cart is purchased
 CREATE TABLE IF NOT EXISTS "orders" (
     "id" UUID PRIMARY KEY,
     "user_id" UUID REFERENCES users(id),
@@ -11,7 +10,7 @@ CREATE TABLE IF NOT EXISTS "orders" (
     "updated_at" TIMESTAMPTZ NULL
 );
 
-CREATE TRIGGER "log_cart_update" BEFORE
+CREATE TRIGGER "log_order_update" BEFORE
 UPDATE
     ON "orders" FOR EACH ROW EXECUTE PROCEDURE log_update_master();
 

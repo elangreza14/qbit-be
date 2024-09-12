@@ -2,10 +2,10 @@ package service
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/elangreza14/qbit/case3/dto"
 	"github.com/elangreza14/qbit/case3/model"
+	"github.com/google/uuid"
 )
 
 type (
@@ -15,20 +15,21 @@ type (
 		Edit(ctx context.Context, payload model.Order, whereValues map[string]any) error
 	}
 
+	orderCartProductRepository interface {
+		UpdateOrderAndProduct(ctx context.Context, orderID uuid.UUID, cartIds []int) error
+	}
+
 	orderService struct {
-		cartRepo  cartRepo
-		orderRepo orderRepo
+		orderCartProductRepository orderCartProductRepository
 	}
 )
 
-func NewOrderService(cartRepo cartRepo, orderRepo orderRepo) *orderService {
+func NewOrderService(orderCartProductRepository orderCartProductRepository) *orderService {
 	return &orderService{
-		cartRepo:  cartRepo,
-		orderRepo: orderRepo,
+		orderCartProductRepository: orderCartProductRepository,
 	}
 }
 
 func (cs *orderService) UpdateOrder(ctx context.Context, req dto.UpdateOrder) error {
-	fmt.Println("bisa update sekarang")
-	return nil
+	return cs.orderCartProductRepository.UpdateOrderAndProduct(ctx, req.OrderID, req.CartIDs)
 }
