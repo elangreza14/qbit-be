@@ -24,17 +24,20 @@ func NewProductService(productsRepo productsRepo) *productsService {
 }
 
 func (cs *productsService) ProductsList(ctx context.Context) (dto.ProductListResponse, error) {
-	currencies, err := cs.productsRepo.GetAll(ctx)
+	products, err := cs.productsRepo.GetAll(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	res := make([]dto.ProductListResponseElement, 0)
-	for _, products := range currencies {
+	for _, product := range products {
 		res = append(res, dto.ProductListResponseElement{
-			ID:          products.ID,
-			Name:        products.Name,
-			Description: products.Description,
+			ID:           product.ID,
+			DeviceName:   product.DeviceName,
+			Manufacturer: product.Manufacturer,
+			Price:        product.Price,
+			Image:        product.Image,
+			Stock:        product.Stock,
 		})
 	}
 

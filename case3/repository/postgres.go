@@ -28,6 +28,7 @@ type (
 		QueryBasicSelect string
 		QueryBasicCreate string
 		QueryBasicUpdate string
+		tableName        string
 	}
 )
 
@@ -62,11 +63,16 @@ func NewPostgresRepo[T Entity](dbPool QueryPgx) *PostgresRepo[T] {
 			tableName,
 			strings.Join(namedColumnsForUpdate, ","),
 		),
+		tableName: tableName,
 	}
 }
 
-func (pr *PostgresRepo[T]) Get(ctx context.Context, by string, val any) (*T, error) {
+func (pr *PostgresRepo[T]) Get(ctx context.Context, by string, val any, columns ...string) (*T, error) {
 	q := fmt.Sprintf(pr.QueryBasicSelect+` WHERE %s = $1 LIMIT 1`, by)
+	if len(columns) > 0 {
+		q = fmt.Sprintf(`select %s from %s  WHERE %s = $1 LIMIT 1`, strings.Join(columns, ", "), pr, by)
+	}
+
 	v, err := pgxutil.SelectRow(ctx, pr.db, q, []any{val}, pgx.RowToStructByNameLax[T])
 	if err != nil {
 		return nil, err

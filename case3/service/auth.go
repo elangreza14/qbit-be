@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/elangreza14/qbit/case3/dto"
 	"github.com/elangreza14/qbit/case3/model"
@@ -12,12 +12,12 @@ import (
 type (
 	userRepo interface {
 		Create(ctx context.Context, entities ...model.User) error
-		Get(ctx context.Context, by string, val any) (*model.User, error)
+		Get(ctx context.Context, by string, val any, columns ...string) (*model.User, error)
 	}
 
 	tokenRepo interface {
 		Create(ctx context.Context, entities ...model.Token) error
-		Get(ctx context.Context, by string, val any) (*model.Token, error)
+		Get(ctx context.Context, by string, val any, columns ...string) (*model.Token, error)
 	}
 
 	AuthService struct {
@@ -34,7 +34,16 @@ func NewAuthService(userRepo userRepo, tokenRepo tokenRepo) *AuthService {
 }
 
 func (as *AuthService) RegisterUser(ctx context.Context, req dto.RegisterPayload) error {
-	user, err := model.NewUser(req.Email, req.Password, req.Name)
+	user, err := as.UserRepo.Get(ctx, "email", req.Email, "email")
+	if err != nil && err != pgx.ErrNoRows {
+		return err
+	}
+
+	if user != nil {
+		return errors.New("email already exist")
+	}
+
+	user, err = model.NewUser(req.Email, req.Password, req.Name)
 	if err != nil {
 		return err
 	}
@@ -48,7 +57,7 @@ func (as *AuthService) RegisterUser(ctx context.Context, req dto.RegisterPayload
 }
 
 func (as *AuthService) LoginUser(ctx context.Context, req dto.LoginPayload) (string, error) {
-	user, err := as.UserRepo.Get(ctx, "email", req.Email)
+	user, err := as.UserRepo.Get(ctx, "email", req.Email, "id", "password")
 	if err != nil {
 		return "", err
 	}
@@ -58,9 +67,8 @@ func (as *AuthService) LoginUser(ctx context.Context, req dto.LoginPayload) (str
 		return "", err
 	}
 
-	token, err := as.TokenRepo.Get(ctx, "user_id", user.ID)
+	token, err := as.TokenRepo.Get(ctx, "user_id", user.ID, "token")
 	if err != nil && err != pgx.ErrNoRows {
-		fmt.Println("1")
 		return "", err
 	}
 
@@ -92,7 +100,7 @@ func (as *AuthService) ProcessToken(ctx context.Context, reqToken string) (*mode
 		return nil, err
 	}
 
-	token, err = as.TokenRepo.Get(ctx, "id", id)
+	token, err = as.TokenRepo.Get(ctx, "id", id, "user_id")
 	if err != nil {
 		return nil, err
 	}

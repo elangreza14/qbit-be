@@ -135,25 +135,12 @@ func DB(ctx context.Context, logger *zap.Logger) (*pgxpool.Pool, error) {
 		return nil, err
 	}
 
-	_, err = db.Exec(`CREATE SCHEMA IF NOT EXISTS ` + os.Getenv("POSTGRES_SCHEME"))
-	if err != nil {
-		return nil, err
-	}
-
-	newConnString := fmt.Sprintf("%s&search_path=%s", connString, os.Getenv("POSTGRES_SCHEME"))
-
-	db, err = sql.Open("postgres", newConnString)
-	if err != nil {
-		return nil, err
-	}
-
 	driver, err := postgres.WithInstance(db, &postgres.Config{})
 	if err != nil {
 		return nil, err
 	}
-	m, err := migrate.NewWithDatabaseInstance(
-		"file://migrations",
-		"postgres", driver)
+
+	m, err := migrate.NewWithDatabaseInstance("file://migrations", "postgres", driver)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +151,7 @@ func DB(ctx context.Context, logger *zap.Logger) (*pgxpool.Pool, error) {
 		}
 	}
 
-	config, err := pgxpool.ParseConfig(newConnString)
+	config, err := pgxpool.ParseConfig(connString)
 	if err != nil {
 		return nil, err
 	}
@@ -242,7 +229,6 @@ func gracefulShutdown(ctx context.Context, logger *zap.Logger, timeout time.Dura
 
 		wg.Wait()
 		cancel()
-		// close(wait)
 	}()
 
 	return wait
