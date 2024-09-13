@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -23,8 +22,6 @@ import (
 	"github.com/gin-contrib/cors"
 	ginzap "github.com/gin-contrib/zap"
 	"github.com/gin-gonic/gin"
-	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	pgxzap "github.com/jackc/pgx-zap"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -36,6 +33,18 @@ import (
 )
 
 func main() {
+	fmt.Println(os.Getenv("REDIS_URL"),
+		os.Getenv("ENV"),
+		os.Getenv("HTTP_PORT"),
+		os.Getenv("HTTP_PORT"),
+		os.Getenv("POSTGRES_USER"),
+		os.Getenv("POSTGRES_PASSWORD"),
+		os.Getenv("POSTGRES_HOSTNAME"),
+		os.Getenv("POSTGRES_PORT"),
+		os.Getenv("POSTGRES_DB"),
+		os.Getenv("POSTGRES_SSL"),
+		os.Getenv("ENV"))
+
 	// setup env
 	curDir, err := os.Getwd()
 	if err != nil {
@@ -169,34 +178,39 @@ func DB(ctx context.Context, logger *zap.Logger) (*pgxpool.Pool, error) {
 		os.Getenv("POSTGRES_SSL"),
 	)
 
-	db, err := sql.Open("postgres", connString)
-	if err != nil {
-		return nil, err
-	}
+	// db, err := sql.Open("postgres", connString)
+	// if err != nil {
+	// 	fmt.Println(1)
+	// 	return nil, err
+	// }
 
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
-	if err != nil {
-		return nil, err
-	}
+	// driver, err := postgres.WithInstance(db, &postgres.Config{})
+	// if err != nil {
+	// 	fmt.Println(2)
+	// 	return nil, err
+	// }
 
-	m, err := migrate.NewWithDatabaseInstance("file://migrations", "postgres", driver)
-	if err != nil {
-		return nil, err
-	}
+	// m, err := migrate.NewWithDatabaseInstance(fmt.Sprintf("file://%s", os.Getenv("MIGRATION_FOLDER")), "postgres", driver)
+	// if err != nil {
+	// 	fmt.Println(3)
+	// 	return nil, err
+	// }
 
-	if err := m.Up(); err != nil {
-		if err != migrate.ErrNoChange {
-			return nil, err
-		}
-	}
+	// if err := m.Up(); err != nil {
+	// 	if err != migrate.ErrNoChange {
+	// 		return nil, err
+	// 	}
+	// }
 
 	config, err := pgxpool.ParseConfig(connString)
 	if err != nil {
+		fmt.Println(4)
 		return nil, err
 	}
 
 	logLevel, err := tracelog.LogLevelFromString(logger.Level().String())
 	if err != nil {
+		fmt.Println(5)
 		return nil, err
 	}
 
@@ -207,11 +221,13 @@ func DB(ctx context.Context, logger *zap.Logger) (*pgxpool.Pool, error) {
 
 	conn, err := pgxpool.NewWithConfig(ctx, config)
 	if err != nil {
+		fmt.Println(6)
 		return nil, err
 	}
 
 	err = conn.Ping(ctx)
 	if err != nil {
+		fmt.Println(7)
 		return nil, err
 	}
 
