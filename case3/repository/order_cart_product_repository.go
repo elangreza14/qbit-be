@@ -80,6 +80,12 @@ func (ur *orderCartProductRepository) UpdateOrderAndProduct(ctx context.Context,
 			return err
 		}
 
+		orderRepo := NewOrderRepository(tx)
+		order, err := orderRepo.Get(ctx, "id", orderID)
+		if err != nil {
+			return err
+		}
+
 		productRepo := NewProductRepository(tx)
 		for _, orderProduct := range orderProducts {
 			if orderProduct.ActualStock >= orderProduct.Quantity {
@@ -92,13 +98,17 @@ func (ur *orderCartProductRepository) UpdateOrderAndProduct(ctx context.Context,
 				if err != nil {
 					return err
 				}
-			}
-		}
+			} else {
+				order.Status = "CANCELED_BECAUSE_LIMITED_STOCK"
+				whereClause := make(map[string]any)
+				whereClause["id"] = order.ID
+				err = orderRepo.Edit(ctx, *order, whereClause)
+				if err != nil {
+					return err
+				}
 
-		orderRepo := NewOrderRepository(tx)
-		order, err := orderRepo.Get(ctx, "id", orderID)
-		if err != nil {
-			return err
+				return nil
+			}
 		}
 
 		order.Status = "WAITING_PAYMENT"

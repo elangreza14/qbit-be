@@ -17,6 +17,7 @@ type (
 		// Status can be
 		// PROCESSING,
 		// WAITING_PAYMENT,
+		// CANCELED_BECAUSE_LIMITED_STOCK
 		// SUCCESS,
 		// FAILED
 		Status StatusEnum `db:"status"`

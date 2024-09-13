@@ -47,7 +47,7 @@ func (am *AuthMiddleware) MustAuthMiddleware() gin.HandlerFunc {
 
 		user, err := am.authService.ProcessToken(c, token)
 		if err != nil {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, dto.NewBaseResponse(nil, errors.New("token unauthorize for this user")))
+			c.AbortWithStatusJSON(http.StatusUnauthorized, dto.NewBaseResponse(nil, errors.New("cannot unauthorize this user")))
 			return
 		}
 
